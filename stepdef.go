@@ -67,6 +67,7 @@ type Context struct {
 	AfterAllFilter  func()
 	Steps           []StepDefinition
 	T               Tester
+	Step            gherkin.Step
 }
 
 func (c *Context) addStep(match string, fn interface{}) {
