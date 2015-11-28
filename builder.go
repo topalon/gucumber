@@ -79,7 +79,7 @@ func BuildAndRunDir(dir string, filters []string) error {
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		buildCleanup(dir)
-		os.Exit(1)
+		return err
 	}
 
 	return nil
