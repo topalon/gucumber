@@ -30,6 +30,10 @@ func Given(match string, fn interface{}) {
 	GlobalContext.Given(match, fn)
 }
 
+func Template(match string, fn interface{}) {
+	GlobalContext.Template(match, fn)
+}
+
 func Then(match string, fn interface{}) {
 	GlobalContext.Then(match, fn)
 }
@@ -89,6 +93,10 @@ func (c *Context) addStep(match string, fn interface{}) {
 }
 
 func (c *Context) Given(match string, fn interface{}) {
+	c.addStep(match, fn)
+}
+
+func (c *Context) Template(match string, fn interface{}) {
 	c.addStep(match, fn)
 }
 

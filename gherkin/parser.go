@@ -243,7 +243,7 @@ func (p *parser) consumeStep(scenario *Scenario) error {
 	parts := strings.SplitN(line, " ", 2)
 
 	switch parts[0] {
-	case p.translations.Given, p.translations.Then,
+	case p.translations.Given, p.translations.Template, p.translations.Then,
 		p.translations.When, p.translations.And:
 		var arg StringData
 		if len(parts) < 2 {
@@ -262,6 +262,8 @@ func (p *parser) consumeStep(scenario *Scenario) error {
 		switch parts[0] {
 		case p.translations.Given:
 			stype = StepType("Given")
+		case p.translations.Template:
+			stype = StepType("Template")
 		case p.translations.When:
 			stype = StepType("When")
 		case p.translations.Then:
