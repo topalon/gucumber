@@ -255,7 +255,6 @@ func (p *parser) consumeStep(scenario *Scenario) error {
 			return p.err("%q used more than once per scenario", parts[0])
 		}
 
-		lineNo := p.lineNo
 		if p.nextLine() {
 			l, _ := p.lineStripped()
 			p.unread()
@@ -280,7 +279,8 @@ func (p *parser) consumeStep(scenario *Scenario) error {
 			stype = StepType("And")
 		}
 		s := Step{
-			Filename: p.filename, Line: lineNo,
+			// @note: line number needed an increment to reflect the correct value
+			Filename: p.filename, Line: p.lineNo + 1,
 			Type: stype, Text: parts[1], Argument: arg,
 		}
 

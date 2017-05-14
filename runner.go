@@ -2,6 +2,7 @@ package gucumber
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -55,7 +56,8 @@ func (c *Context) RunDir(dir string) (*Runner, error) {
 
 	runner, err := c.RunFiles(g)
 	if err != nil {
-		panic(err)
+		//panic(err)
+		return runner, err
 	}
 
 	if len(runner.Unmatched) > 0 {
@@ -64,7 +66,7 @@ func (c *Context) RunDir(dir string) (*Runner, error) {
 		fmt.Print(runner.MissingMatcherStubs())
 	}
 
-	os.Exit(runner.FailCount)
+	//os.Exit(runner.FailCount)
 	return runner, err
 }
 
@@ -93,7 +95,11 @@ func (c *Context) RunFiles(featureFiles []string) (*Runner, error) {
 			return nil, err
 		}
 
-		fs = c.ApplyMacros(fs)
+		fs, err = c.ApplyMacros(fs)
+
+		if err != nil {
+			return &r, err
+		}
 
 		for _, f := range fs {
 			r.Features = append(r.Features, &f)
@@ -104,7 +110,7 @@ func (c *Context) RunFiles(featureFiles []string) (*Runner, error) {
 	return &r, nil
 }
 
-func (c *Context) ApplyMacros(features []gherkin.Feature) []gherkin.Feature {
+func (c *Context) ApplyMacros(features []gherkin.Feature) ([]gherkin.Feature, error) {
 	macroStepType := gherkin.StepType("Macro")
 	macros := map[string][]gherkin.Step{}
 
@@ -117,15 +123,14 @@ func (c *Context) ApplyMacros(features []gherkin.Feature) []gherkin.Feature {
 				continue
 			}
 
-			macroSeen := false
 			steps := []gherkin.Step{}
 
-			for _, step := range s.Steps {
+			for i, step := range s.Steps {
 				if step.Type == macroStepType {
-					macroSeen = true
-					continue
-				}
-				if macroSeen == false {
+					if i > 0 {
+						msg := fmt.Sprintf("%s must be the first step in a scenario: %s:%d %s", step.Type, step.Filename, step.Line, step.Text)
+						return features, errors.New(msg)
+					}
 					continue
 				}
 				steps = append(steps, step)
@@ -169,7 +174,7 @@ func (c *Context) ApplyMacros(features []gherkin.Feature) []gherkin.Feature {
 		features[i] = f
 	}
 
-	return features
+	return features, nil
 }
 
 func (c *Runner) MissingMatcherStubs() string {

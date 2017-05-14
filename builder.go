@@ -138,6 +138,8 @@ var tplMain = template.Must(template.New("main").Parse(`
 package main
 
 import (
+	"fmt"
+	"os"
 	"github.com/gucumber/gucumber"
 	{{range $n, $i := .Imports}}_i{{$n}} "{{$i}}"
 	{{end}}
@@ -155,6 +157,11 @@ func main() {
 	{{end}}
 	}
 	{{end}}
-	gucumber.GlobalContext.RunDir({{.FeaturesPath}})
+	_, err := gucumber.GlobalContext.RunDir({{.FeaturesPath}})
+
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }
 `))
