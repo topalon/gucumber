@@ -93,6 +93,8 @@ func (c *Context) RunFiles(featureFiles []string) (*Runner, error) {
 			return nil, err
 		}
 
+		fs = c.ApplyTemplates(fs)
+
 		for _, f := range fs {
 			r.Features = append(r.Features, &f)
 		}
@@ -100,6 +102,74 @@ func (c *Context) RunFiles(featureFiles []string) (*Runner, error) {
 
 	r.run()
 	return &r, nil
+}
+
+func (c *Context) ApplyTemplates(features []gherkin.Feature) []gherkin.Feature {
+	templateStep := gherkin.StepType("Template")
+	templates := map[string][]gherkin.Step{}
+
+	// extract the templates
+	for i, f := range features {
+		scenarios := []gherkin.Scenario{}
+		for _, s := range f.Scenarios {
+			if s.Template == "" {
+				scenarios = append(scenarios, s)
+				continue
+			}
+
+			templateSeen := false
+			steps := []gherkin.Step{}
+
+			for _, step := range s.Steps {
+				if step.Type == templateStep {
+					templateSeen = true
+					continue
+				}
+				if templateSeen == false {
+					continue
+				}
+				steps = append(steps, step)
+			}
+
+			templates[s.Template] = steps
+		}
+		f.Scenarios = scenarios
+		features[i] = f
+	}
+
+	// with the templates now separated from the scenario
+	// find any steps that match template syntax and replace the with the template steps
+	for i, f := range features {
+		scenarios := []gherkin.Scenario{}
+		for _, s := range f.Scenarios {
+			steps := []gherkin.Step{}
+			for _, step := range s.Steps {
+				found := false
+				// does the step match a template syntax?
+				for templateLine, templateSteps := range templates {
+					matcher := regexp.MustCompile(templateLine)
+					if match := matcher.FindStringSubmatch(step.Text); match != nil {
+						// if so include the template steps instead of the original step
+						found = true
+						// @todo match again getting the full set of values, then search and replace those in all step text
+						steps = append(steps, templateSteps...)
+						break
+					}
+				}
+				if found {
+					continue
+				}
+				// otherwise include the original
+				steps = append(steps, step)
+			}
+			s.Steps = steps
+			scenarios = append(scenarios, s)
+		}
+		f.Scenarios = scenarios
+		features[i] = f
+	}
+
+	return features
 }
 
 func (c *Runner) MissingMatcherStubs() string {

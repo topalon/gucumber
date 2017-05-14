@@ -246,9 +246,16 @@ func (p *parser) consumeStep(scenario *Scenario) error {
 	case p.translations.Given, p.translations.Template, p.translations.Then,
 		p.translations.When, p.translations.And:
 		var arg StringData
+
 		if len(parts) < 2 {
 			return p.err("expected step text after %q", parts[0])
 		}
+
+		if parts[0] == p.translations.Template && scenario.Template != "" {
+			return p.err("%q used more than once per scenario", parts[0])
+		}
+
+		lineNo := p.lineNo
 		if p.nextLine() {
 			l, _ := p.lineStripped()
 			p.unread()
@@ -264,6 +271,7 @@ func (p *parser) consumeStep(scenario *Scenario) error {
 			stype = StepType("Given")
 		case p.translations.Template:
 			stype = StepType("Template")
+			scenario.Template = parts[1]
 		case p.translations.When:
 			stype = StepType("When")
 		case p.translations.Then:
@@ -272,9 +280,10 @@ func (p *parser) consumeStep(scenario *Scenario) error {
 			stype = StepType("And")
 		}
 		s := Step{
-			Filename: p.filename, Line: p.lineNo,
+			Filename: p.filename, Line: lineNo,
 			Type: stype, Text: parts[1], Argument: arg,
 		}
+
 		scenario.Steps = append(scenario.Steps, s)
 	case p.translations.Examples + ":":
 		scenario.Examples = p.consumeIndentedData(indent)

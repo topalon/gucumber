@@ -53,6 +53,9 @@ type Scenario struct {
 	// Contains all scenario outline example data, if provided.
 	Examples StringData
 
+	// If the scenario is a template, this value will contain the syntax
+	Template string
+
 	// The longest line length in the scenario (including title)
 	longestLine int
 }
