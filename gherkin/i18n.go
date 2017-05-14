@@ -22,8 +22,8 @@ type Translation struct {
 	// Language specific term representing the "Given" step.
 	Given string
 
-	// Language specific term representing the "Template" step.
-	Template string
+	// Language specific term representing the "Macro" step.
+	Macro string
 
 	// Language specific term representing the "When" step.
 	When string
@@ -51,7 +51,7 @@ var (
 			Outline:    "Scenario Outline",
 			And:        "And",
 			Given:      "Given",
-			Template:   "Template",
+			Macro:      "Macro",
 			When:       "When",
 			Then:       "Then",
 			Examples:   "Examples",

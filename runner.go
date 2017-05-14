@@ -93,7 +93,7 @@ func (c *Context) RunFiles(featureFiles []string) (*Runner, error) {
 			return nil, err
 		}
 
-		fs = c.ApplyTemplates(fs)
+		fs = c.ApplyMacros(fs)
 
 		for _, f := range fs {
 			r.Features = append(r.Features, &f)
@@ -104,55 +104,55 @@ func (c *Context) RunFiles(featureFiles []string) (*Runner, error) {
 	return &r, nil
 }
 
-func (c *Context) ApplyTemplates(features []gherkin.Feature) []gherkin.Feature {
-	templateStep := gherkin.StepType("Template")
-	templates := map[string][]gherkin.Step{}
+func (c *Context) ApplyMacros(features []gherkin.Feature) []gherkin.Feature {
+	macroStepType := gherkin.StepType("Macro")
+	macros := map[string][]gherkin.Step{}
 
-	// extract the templates
+	// extract the macros
 	for i, f := range features {
 		scenarios := []gherkin.Scenario{}
 		for _, s := range f.Scenarios {
-			if s.Template == "" {
+			if s.Macro == "" {
 				scenarios = append(scenarios, s)
 				continue
 			}
 
-			templateSeen := false
+			macroSeen := false
 			steps := []gherkin.Step{}
 
 			for _, step := range s.Steps {
-				if step.Type == templateStep {
-					templateSeen = true
+				if step.Type == macroStepType {
+					macroSeen = true
 					continue
 				}
-				if templateSeen == false {
+				if macroSeen == false {
 					continue
 				}
 				steps = append(steps, step)
 			}
 
-			templates[s.Template] = steps
+			macros[s.Macro] = steps
 		}
 		f.Scenarios = scenarios
 		features[i] = f
 	}
 
-	// with the templates now separated from the scenario
-	// find any steps that match template syntax and replace the with the template steps
+	// with the macros now separated from the scenario
+	// find any steps that match macro syntax and replace the with the macro steps
 	for i, f := range features {
 		scenarios := []gherkin.Scenario{}
 		for _, s := range f.Scenarios {
 			steps := []gherkin.Step{}
 			for _, step := range s.Steps {
 				found := false
-				// does the step match a template syntax?
-				for templateLine, templateSteps := range templates {
-					matcher := regexp.MustCompile(templateLine)
+				// does the step match a macro syntax?
+				for macroLine, macroSteps := range macros {
+					matcher := regexp.MustCompile(macroLine)
 					if match := matcher.FindStringSubmatch(step.Text); match != nil {
-						// if so include the template steps instead of the original step
+						// if so include the macro steps instead of the original step
 						found = true
 						// @todo match again getting the full set of values, then search and replace those in all step text
-						steps = append(steps, templateSteps...)
+						steps = append(steps, macroSteps...)
 						break
 					}
 				}

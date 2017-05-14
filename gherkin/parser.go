@@ -243,7 +243,7 @@ func (p *parser) consumeStep(scenario *Scenario) error {
 	parts := strings.SplitN(line, " ", 2)
 
 	switch parts[0] {
-	case p.translations.Given, p.translations.Template, p.translations.Then,
+	case p.translations.Given, p.translations.Macro, p.translations.Then,
 		p.translations.When, p.translations.And:
 		var arg StringData
 
@@ -251,7 +251,7 @@ func (p *parser) consumeStep(scenario *Scenario) error {
 			return p.err("expected step text after %q", parts[0])
 		}
 
-		if parts[0] == p.translations.Template && scenario.Template != "" {
+		if parts[0] == p.translations.Macro && scenario.Macro != "" {
 			return p.err("%q used more than once per scenario", parts[0])
 		}
 
@@ -269,9 +269,9 @@ func (p *parser) consumeStep(scenario *Scenario) error {
 		switch parts[0] {
 		case p.translations.Given:
 			stype = StepType("Given")
-		case p.translations.Template:
-			stype = StepType("Template")
-			scenario.Template = parts[1]
+		case p.translations.Macro:
+			stype = StepType("Macro")
+			scenario.Macro = parts[1]
 		case p.translations.When:
 			stype = StepType("When")
 		case p.translations.Then:
