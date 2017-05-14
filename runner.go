@@ -362,6 +362,7 @@ func (c *Runner) runScenario(title string, f *gherkin.Feature, s *gherkin.Scenar
 	}
 
 	for _, step := range s.Steps {
+		GlobalContext.Step = step
 		errCount := len(t.errors)
 		found := false
 		if !skipping && !t.Failed() {
