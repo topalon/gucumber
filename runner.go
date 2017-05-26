@@ -34,6 +34,9 @@ var (
 	reOutlineVal   = regexp.MustCompile(`<(.+?)>`)
 )
 
+type StepMacro []gherkin.Step
+type StepMacros map[string]StepMacro
+
 type Runner struct {
 	*Context
 	Features  []*gherkin.Feature
@@ -78,6 +81,9 @@ func (c *Context) RunFiles(featureFiles []string) (*Runner, error) {
 		Unmatched: []*gherkin.Step{},
 	}
 
+	macros := StepMacros{}
+	features := []gherkin.Feature{}
+
 	for _, file := range featureFiles {
 		fd, err := os.Open(file)
 		if err != nil {
@@ -95,26 +101,40 @@ func (c *Context) RunFiles(featureFiles []string) (*Runner, error) {
 			return nil, err
 		}
 
-		fs, err = c.ApplyMacros(fs)
-
+		ms, fs, err := c.ExtractMacros(fs)
 		if err != nil {
 			return &r, err
 		}
 
-		for _, f := range fs {
-			r.Features = append(r.Features, &f)
+		for name, macro := range ms {
+			if _, ok := macros[name]; ok {
+				msg := fmt.Sprintf("Duplicate macro: %s", name)
+				return &r, errors.New(msg)
+			}
+
+			macros[name] = macro
 		}
+
+		features = append(features, fs...)
+	}
+
+	fs, err := c.ExpandMacros(macros, features)
+	if err != nil {
+		return &r, err
+	}
+
+	for _, f := range fs {
+		r.Features = append(r.Features, &f)
 	}
 
 	r.run()
 	return &r, nil
 }
 
-func (c *Context) ApplyMacros(features []gherkin.Feature) ([]gherkin.Feature, error) {
+func (c *Context) ExtractMacros(features []gherkin.Feature) (StepMacros, []gherkin.Feature, error) {
+	macros := StepMacros{}
 	macroStepType := gherkin.StepType("Macro")
-	macros := map[string][]gherkin.Step{}
 
-	// extract the macros
 	for i, f := range features {
 		scenarios := []gherkin.Scenario{}
 		for _, s := range f.Scenarios {
@@ -122,14 +142,13 @@ func (c *Context) ApplyMacros(features []gherkin.Feature) ([]gherkin.Feature, er
 				scenarios = append(scenarios, s)
 				continue
 			}
-
 			steps := []gherkin.Step{}
 
 			for i, step := range s.Steps {
 				if step.Type == macroStepType {
 					if i > 0 {
 						msg := fmt.Sprintf("%s must be the first step in a scenario: %s:%d %s", step.Type, step.Filename, step.Line, step.Text)
-						return features, errors.New(msg)
+						return macros, features, errors.New(msg)
 					}
 					continue
 				}
@@ -142,8 +161,14 @@ func (c *Context) ApplyMacros(features []gherkin.Feature) ([]gherkin.Feature, er
 		features[i] = f
 	}
 
-	// with the macros now separated from the scenario
-	// find any steps that match macro syntax and replace the with the macro steps
+	return macros, features, nil
+}
+
+// with the macros now separated from the scenario
+// find any steps that match macro syntax and replace the with the macro steps
+// @todo: do not remove the main step. instead expect that a handler has been registered for it manually, or auto if not defined manually
+// t.Macro() will be added similar to t.Skipped() allowing us to colorize (and report?) on macros
+func (c *Context) ExpandMacros(macros StepMacros, features []gherkin.Feature) ([]gherkin.Feature, error) {
 	for i, f := range features {
 		scenarios := []gherkin.Scenario{}
 		for _, s := range f.Scenarios {
